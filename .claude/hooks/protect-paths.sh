@@ -38,9 +38,10 @@ docs/memory-bank/pending-<slug>.md に草案として隔離し、PM 承認を待
     ;;
 esac
 
-# --- ブランチ層で分岐 ---
-case "$BRANCH" in
-  spec/slice-*)
+# --- ブランチ層で分岐（判定は lib.sh の slice_branch_layer()・番号必須） ---
+LAYER="$(slice_branch_layer "$BRANCH")"   # feature / spec / 空文字
+case "${LAYER:-$BRANCH}" in
+  spec)
     # 上流：実装は書けない
     case "$REL" in
       backend/*|frontend/*)
@@ -66,7 +67,7 @@ Phase A の grill 結果を PM が確認し、frontmatter を approved: true に
     esac
     ;;
 
-  feature/slice-*)
+  feature)
     # 下流：仕様は read-only
     case "$REL" in
       acceptance/*)
@@ -93,7 +94,7 @@ backend/ frontend/ を直して緑にしてください。
       backend/*|frontend/*|acceptance/*|docs/spec/*)
         block "PreToolUse:protect-paths" "BLOCKED: 現在ブランチを特定できません（branch='${BRANCH}'）。
 層で管理される書込対象（backend/ frontend/ acceptance/ docs/spec/）は、
-作業ブランチ（feature/slice-* / spec/slice-*）を切ってから編集してください（ADR-0004・CLAUDE.md §1-1）。"
+作業ブランチ（feature/slice-NN / spec/slice-NN、NN=/board 採番）を切ってから編集してください（ADR-0004・CLAUDE.md §1-1）。"
         ;;
     esac
     ;;

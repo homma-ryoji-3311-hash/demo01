@@ -21,6 +21,18 @@ current_branch() {
   git -C "$PROJECT_DIR" branch --show-current 2>/dev/null || true
 }
 
+# slice_branch_layer <branch> : 正規の slice 作業ブランチなら層名（feature|spec）を返す。
+#   一致: feature/slice-01, spec/slice-2, feature/slice-0012-login-form
+#   不一致（空文字を返す）: feature/slice-bootstrap, feature/slice-, main, ""（unborn/detached）
+#   採番規約（/board・ADR-0013）と同じ厳しさで判定する。番号のない slice- は作業ブランチではない。
+#   glob `feature/slice-*` を各 hook に散らすと「パターンに寄せた命名」で fail-open になる
+#   （docs/memory-bank/hook-defect-slice-pattern-too-broad-2026-07-13.md 参照）。
+slice_branch_layer() {
+  if [[ "${1:-}" =~ ^(feature|spec)/slice-0*[0-9]+(-[A-Za-z0-9-]+)?$ ]]; then
+    printf '%s' "${BASH_REMATCH[1]}"
+  fi
+}
+
 # jq_field <json> <python式> : python3 があれば使い、無ければ空を返す
 json_field() {
   local payload="$1" expr="$2"
