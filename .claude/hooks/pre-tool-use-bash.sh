@@ -10,18 +10,16 @@ CMD="$(json_field "$PAYLOAD" "d.get('tool_input',{}).get('command')")"
 deny() { block "PreToolUse:Bash" "$1"; }
 
 # --- main を進める操作の禁止（CLAUDE.md §1-1） ---
-# 作業ブランチ（feature/slice-* / spec/slice-*）での commit / push は許可されている。
+# 作業ブランチ（feature/slice-NN / spec/slice-NN、NN=/board 採番）での commit / push は許可されている。
 # 許可を狭く定義するホワイトリスト方式（誤検知は止まる側に倒す＝fail-closed）。
 BRANCH="$(current_branch)"   # unborn/detached 安全（lib.sh）。空文字は非作業ブランチ扱い＝fail-closed
 WORK_BRANCH=0
-case "$BRANCH" in
-  feature/slice-*|spec/slice-*) WORK_BRANCH=1 ;;
-esac
+[[ -n "$(slice_branch_layer "$BRANCH")" ]] && WORK_BRANCH=1   # 番号必須（lib.sh）
 
 if [[ "$CMD" =~ (^|[[:space:];&|])git[[:space:]]+commit ]]; then
   if [[ "$WORK_BRANCH" -ne 1 ]]; then
     deny "BLOCKED: git commit（現在ブランチ: ${BRANCH}）。
-commit が許可されるのは作業ブランチ（feature/slice-* / spec/slice-*）のみ（CLAUDE.md §1-1）。
+commit が許可されるのは作業ブランチ（feature/slice-NN / spec/slice-NN、NN=/board 採番）のみ（CLAUDE.md §1-1）。
 main を進める操作は統合役ただ1人。/pickup で作業ブランチを切ってから作業すること。"
   fi
 fi
@@ -30,7 +28,7 @@ if [[ "$CMD" =~ (^|[[:space:];&|])git[[:space:]]+push ]]; then
   PUSH_ARGS="${CMD#*push}"
   if [[ "$WORK_BRANCH" -ne 1 ]]; then
     deny "BLOCKED: git push（現在ブランチ: ${BRANCH}）。
-push が許可されるのは作業ブランチ（feature/slice-* / spec/slice-*）からのみ（CLAUDE.md §1-1）。"
+push が許可されるのは作業ブランチ（feature/slice-NN / spec/slice-NN、NN=/board 採番）からのみ（CLAUDE.md §1-1）。"
   fi
   if [[ "$PUSH_ARGS" =~ (^|[[:space:]])(main|master)([[:space:]]|$) ]] \
   || [[ "$PUSH_ARGS" =~ --force ]] \

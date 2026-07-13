@@ -11,7 +11,7 @@ ACTIVE="$(json_field "$PAYLOAD" "d.get('stop_hook_active')")"
 
 BRANCH="$(current_branch)"   # unborn/detached 安全（lib.sh）
 # feature ブランチ以外（＝上流の作業）ではゲートしない
-[[ "$BRANCH" == feature/slice-* ]] || exit 0
+[[ "$(slice_branch_layer "$BRANCH")" == "feature" ]] || exit 0   # 番号必須（lib.sh）
 
 LAST_RUN="${PROJECT_DIR}/test-results/.last-run.json"
 
