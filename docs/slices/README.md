@@ -9,6 +9,10 @@
 
 | slice_id | slug | 依存 | 概要 | 由来 |
 |---|---|---|---|---|
-| _(工程2 の `/board` 初回起動で採番される)_ | | | | |
+| slice-01 | auth | なし | Google OAuth ログイン・許可ドメイン検証・権限境界の強制（他人のreportへ403） | overview |
+| slice-02 | report-draft | slice-01 | 報告下書き作成・自動保存（PATCH）・前回本文/前回要約の参照表示 | overview |
+| slice-03 | summary-review | slice-02 | AI要約呼び出し（Summarizer抽象化層）・確認編集画面・要確認フラグ・degrade（AI失敗時も下書き保存可） | overview |
+| slice-04 | report-confirm | slice-03 | 確定（confirmed化）・確定後不変（409）・必須項目欠落時422 | overview |
+| slice-05 | report-history | slice-04 | 自分の確定済み報告の一覧・詳細閲覧（他人の報告は不可視） | overview |
 
 > 由来の値：`overview`（基本設計由来）／`split-of-slice-NN`（分割）／`regression-of-slice-NN`（回帰・ADR-0014）。
