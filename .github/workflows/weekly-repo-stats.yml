@@ -1,0 +1,47 @@
+name: Weekly Repo Stats
+
+# 週次リポジトリ統計（観測レポート・派生データ）
+# - git には書き込まない（憲法 §1）。出力は Issue＋Step Summary＋artifact のみ。
+# - Claude は使わない（決定的処理のみ）。所有: Harness-Keeper。
+# - docs/metrics/slices.md（プロセスKPI 正本）とは完全分離。
+
+on:
+  schedule:
+    - cron: '0 9 * * 4'   # JST 木曜 18:00（UTC 木曜 09:00）。schedule は数分〜30分遅延しうる
+  workflow_dispatch:       # 手動再実行（カレンダー固定週なので冪等）
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+
+jobs:
+  stats:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # コミット集計に全履歴が必要
+
+      - name: Collect
+        run: bash tools/repo-stats/collect.sh out
+
+      - name: Report
+        run: bash tools/repo-stats/report.sh out
+
+      - name: Publish
+        run: |
+          cat out/report.md >> "$GITHUB_STEP_SUMMARY"
+          WEEK=$(jq -r .week out/meta.json)
+          gh label create repo-stats --color 0E8A16 --description "週次リポジトリ統計" --force 2>/dev/null || true
+          gh issue create \
+            --title "週次リポジトリ統計 ${WEEK}" \
+            --body-file out/report.md \
+            --label repo-stats
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: repo-stats-${{ github.run_id }}
+          path: out/

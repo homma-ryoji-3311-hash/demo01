@@ -1,0 +1,37 @@
+# ADR-0001 / ADR-0004 / ADR-0012 の機械検証（三層モデルの「事後検証」層）。
+# acceptance/ は宣言（CLAUDE.md）・実行時強制（protect-paths hook）・CI の三層すべてで守る。
+# 三層すべてで同じルールを張る唯一の対象＝それだけ重要な不変条項。
+# 書込権はブランチ名で決まる（ADR-0004）:
+#   feature/* … 実装を書ける。acceptance/ と docs/spec/ は read-only
+#   spec/*    … acceptance/ と docs/spec/ を書ける（仕様表 approved: true が条件＝ADR-0012）。実装は書けない
+#   その他    … 全ガード適用（実質何も変更できない側に倒す＝fail-closed）
+name: guard-acceptance
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  path-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ブランチ層に応じた path ガード（ADR-0004）
+        run: |
+          CHANGED="$(git diff --name-only origin/${{ github.base_ref }}...HEAD)"
+          echo "$CHANGED"
+          HEAD_REF="${{ github.head_ref }}"
+
+          case "$HEAD_REF" in
+            feature/slice-*)
+              # 実装ブランチ: acceptance/ と docs/spec/ は read-only
+              if echo "$CHANGED" | grep -qE '^(acceptance/|docs/spec/)'; then
+                echo "::error::feature/* から acceptance/ または docs/spec/ が変更されています。受け入れテスト＝仕様＝読み取り専用（ADR-0001・0004）。"
+                echo "::error::仕様変更が必要な場合は PM が仕様表を更新し、spec/* ブランチで /spec が翻訳します。"
+                exit 1
+              fi
+              ;;
+   
