@@ -9,6 +9,10 @@ PM 本人の判定も1行残す（監査証跡の一貫性のため）。所有�
 | PR | slice_id | 日付 | ゲート重量 | 判定 | 判定者 | PM事後確認 | 根拠（1行） |
 |---|---|---|---|---|---|---|---|
 | #3 | slice-01-auth | 2026-07-14 | 重量（`acceptance/`変更） | GO | PM | — | diff精読: AC-1〜4にsource/理由あり、範囲外変更なし、秘密混入なし。マージ自体はADR-0015自己承認ガードによりPM本人が手続き的分離で実行 |
+| #4 | slice-02-report-draft | 2026-07-14 | 重量（`acceptance/`変更） | GO | PM | — | diff精読: AC-1〜6が仕様表と1:1対応、範囲外変更なし、秘密混入なし |
+| #5 | slice-03-summary-review | 2026-07-14 | 重量（`acceptance/`変更） | GO | PM | — | diff精読: AC-1〜5が仕様表と1:1対応、範囲外変更なし、秘密混入なし |
+| #6 | slice-04-report-confirm | 2026-07-14 | 重量（`acceptance/`変更） | GO | PM | — | diff精読: AC-1〜5が仕様表と1:1対応、範囲外変更なし、秘密混入なし |
+| #7 | slice-05-report-history | 2026-07-14 | 重量（`acceptance/`変更） | GO | PM | — | diff精読: AC-1〜5が仕様表と1:1対応、範囲外変更なし、秘密混入なし |
 
 - **ゲート重量**: `軽量`（Audit＋統合役の結果を読んで判定）／`重量`（`irreversible` ラベル。PM が diff を自分で読む）。
 - **判定**: `GO` / `NO-GO`。NO-GO は差し戻し理由を「根拠」に書き、`docs/metrics/slices.md` の差し戻し理由とも整合させる。
