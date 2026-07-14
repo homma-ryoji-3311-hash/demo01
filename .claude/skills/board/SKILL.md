@@ -26,7 +26,7 @@ disable-model-invocation: true
 
 ## 初回採番（工程2）
 
-1. `docs/design/overview.md` と `to-tickets` の縦切り分解（番号を持たない生の一覧）を読む。
+1. `docs/design/overview.md` と `to-issues` の縦切り分解（番号を持たない生の一覧）を読む。
 2. **依存順**に `slice-01..NN` を一括採番し、表に書き出す。仮番号は無い——この番号がそのまま確定。
 3. 由来はすべて `overview`。粒度の目安：受入基準 ≤3〜5 / 1 issue = 1 スライス = 1 セッション。
 4. この時点で issue は起票しない（起票は工程5 `/brief`）。

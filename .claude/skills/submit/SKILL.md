@@ -21,7 +21,8 @@ disable-model-invocation: true
 ## 手順
 
 1. **diff を取得する**
-   - `git diff main...HEAD` と `git log --oneline main..HEAD` を取得する（read-only）。
+   - まず `git fetch origin` で origin/main を最新化する（read-only。ローカル main が古いと Audit が嘘の diff を読む）。
+   - `git diff origin/main...HEAD` と `git log --oneline origin/main..HEAD` を取得する。
    - **diff がコンテキストに収まらない場合は、PR を作らずに停止**し「スライス設計のバグ」として報告する。
 
 2. **PR を作成する**
