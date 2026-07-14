@@ -13,6 +13,11 @@ PM 本人の判定も1行残す（監査証跡の一貫性のため）。所有�
 | #5 | slice-03-summary-review | 2026-07-14 | 重量（`acceptance/`変更） | GO | PM | — | diff精読: AC-1〜5が仕様表と1:1対応、範囲外変更なし、秘密混入なし |
 | #6 | slice-04-report-confirm | 2026-07-14 | 重量（`acceptance/`変更） | GO | PM | — | diff精読: AC-1〜5が仕様表と1:1対応、範囲外変更なし、秘密混入なし |
 | #7 | slice-05-report-history | 2026-07-14 | 重量（`acceptance/`変更） | GO | PM | — | diff精読: AC-1〜5が仕様表と1:1対応、範囲外変更なし、秘密混入なし |
+| #8 | slice-01-auth | 2026-07-14 | 軽量（指示書のみ） | GO | PM | — | diff精読: docs/slices/slice-01.mdのみ、6項目とも整合 |
+| #9 | slice-02-report-draft | 2026-07-14 | 軽量（指示書のみ） | GO | PM | — | diff精読: docs/slices/slice-02.mdのみ、6項目とも整合 |
+| #10 | slice-03-summary-review | 2026-07-14 | 軽量（指示書のみ） | GO | PM | — | diff精読: docs/slices/slice-03.mdのみ、6項目とも整合 |
+| #11 | slice-04-report-confirm | 2026-07-14 | 軽量（指示書のみ） | GO | PM | — | diff精読: docs/slices/slice-04.mdのみ、6項目とも整合 |
+| #12 | slice-05-report-history | 2026-07-14 | 軽量（指示書のみ） | GO | PM | — | diff精読: docs/slices/slice-05.mdのみ、6項目とも整合 |
 
 - **ゲート重量**: `軽量`（Audit＋統合役の結果を読んで判定）／`重量`（`irreversible` ラベル。PM が diff を自分で読む）。
 - **判定**: `GO` / `NO-GO`。NO-GO は差し戻し理由を「根拠」に書き、`docs/metrics/slices.md` の差し戻し理由とも整合させる。
