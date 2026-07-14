@@ -1,0 +1,27 @@
+# 層境ゲート判定ログ
+
+全 PR の層境ゲート判定（GO/NO-GO）の記録場所（ADR-0007・playbook 工程8）。
+**代理判定（リーダー）は記録必須**——「仕様が PM の承認なしに main に入りうる」ため、PM が事後にこの表を確認する。
+PM 本人の判定も1行残す（監査証跡の一貫性のため）。所有は Harness-Keeper（AIアーキ）。
+
+## 記録フォーマット（1判定＝1行）
+
+| PR | slice_id | 日付 | ゲート重量 | 判定 | 判定者 | PM事後確認 | 根拠（1行） |
+|---|---|---|---|---|---|---|---|
+| #3 | slice-01-auth | 2026-07-14 | 重量（`acceptance/`変更） | GO | PM | — | diff精読: AC-1〜4にsource/理由あり、範囲外変更なし、秘密混入なし。マージ自体はADR-0015自己承認ガードによりPM本人が手続き的分離で実行 |
+| #4 | slice-02-report-draft | 2026-07-14 | 重量（`acceptance/`変更） | GO | PM | — | diff精読: AC-1〜6が仕様表と1:1対応、範囲外変更なし、秘密混入なし |
+| #5 | slice-03-summary-review | 2026-07-14 | 重量（`acceptance/`変更） | GO | PM | — | diff精読: AC-1〜5が仕様表と1:1対応、範囲外変更なし、秘密混入なし |
+| #6 | slice-04-report-confirm | 2026-07-14 | 重量（`acceptance/`変更） | GO | PM | — | diff精読: AC-1〜5が仕様表と1:1対応、範囲外変更なし、秘密混入なし |
+| #7 | slice-05-report-history | 2026-07-14 | 重量（`acceptance/`変更） | GO | PM | — | diff精読: AC-1〜5が仕様表と1:1対応、範囲外変更なし、秘密混入なし |
+| #8 | slice-01-auth | 2026-07-14 | 軽量（指示書のみ） | GO | PM | — | diff精読: docs/slices/slice-01.mdのみ、6項目とも整合 |
+| #9 | slice-02-report-draft | 2026-07-14 | 軽量（指示書のみ） | GO | PM | — | diff精読: docs/slices/slice-02.mdのみ、6項目とも整合 |
+| #10 | slice-03-summary-review | 2026-07-14 | 軽量（指示書のみ） | GO | PM | — | diff精読: docs/slices/slice-03.mdのみ、6項目とも整合 |
+| #11 | slice-04-report-confirm | 2026-07-14 | 軽量（指示書のみ） | GO | PM | — | diff精読: docs/slices/slice-04.mdのみ、6項目とも整合 |
+| #12 | slice-05-report-history | 2026-07-14 | 軽量（指示書のみ） | GO | PM | — | diff精読: docs/slices/slice-05.mdのみ、6項目とも整合 |
+| #18 | (Step0残課題) | 2026-07-14 | 軽量（acceptance/設定のみ） | GO | PM | — | diff精読: Playwrightバージョンpin+閾値追加のみ。path-guard CI初合格を確認 |
+
+- **ゲート重量**: `軽量`（Audit＋統合役の結果を読んで判定）／`重量`（`irreversible` ラベル。PM が diff を自分で読む）。
+- **判定**: `GO` / `NO-GO`。NO-GO は差し戻し理由を「根拠」に書き、`docs/metrics/slices.md` の差し戻し理由とも整合させる。
+- **判定者**: `PM` または `代理: リーダー`。**重量ゲートの代理も可**だが必ず記録する（ADR-0007）。
+- **PM事後確認**: 代理判定のみ対象。PM が確認したら日付を入れる。空欄が残っている代理判定は未確認＝監査上の未決。
+- **根拠**: 何を読んで判定したか（例: `Audit GO + 統合役再検証緑` / `diff 精読: 認可変更なし`）。

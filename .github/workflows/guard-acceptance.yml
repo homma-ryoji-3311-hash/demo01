@@ -9,7 +9,7 @@ name: guard-acceptance
 
 on:
   pull_request:
-    branches: [main]
+    branches: [feature/main]
 
 jobs:
   path-guard:
@@ -34,4 +34,29 @@ jobs:
                 exit 1
               fi
               ;;
-   
+            spec/slice-*)
+              # 仕様ブランチ: backend/ と frontend/ は書けない
+              if echo "$CHANGED" | grep -qE '^(backend/|frontend/)'; then
+                echo "::error::spec/* から backend/ または frontend/ が変更されています。実装は仕様ブランチに書けません（ADR-0004）。"
+                echo "::error::実装は feature/slice-NN ブランチで行ってください。"
+                exit 1
+              fi
+              ;;
+            *)
+              # その他のブランチ（番号なしの feature/main 等含む）: 全ガード適用
+              if echo "$CHANGED" | grep -qE '^(acceptance/|docs/spec/|backend/|frontend/)'; then
+                echo "::error::ブランチ '${HEAD_REF}' は feature/slice-NN / spec/slice-NN のいずれでもありません。"
+                echo "::error::保護対象パス（acceptance/・docs/spec/・backend/・frontend/）はこのブランチ層からは変更できません（ADR-0004・CLAUDE.md §1-1）。"
+                exit 1
+              fi
+              ;;
+          esac
+
+      - name: シークレット混入チェック
+        run: |
+          DIFF="$(git diff origin/${{ github.base_ref }}...HEAD)"
+          if echo "$DIFF" | grep -EIi '(api[_-]?key|secret|password|access[_-]?token)[[:space:]]*[:=][[:space:]]*[^[:space:]]' \
+            || echo "$DIFF" | grep -E 'BEGIN (RSA|EC|OPENSSH|PRIVATE) KEY'; then
+            echo "::error::差分にシークレットらしき文字列が含まれています。混入していないか確認してください（CLAUDE.md §1-7）。"
+            exit 1
+          fi
