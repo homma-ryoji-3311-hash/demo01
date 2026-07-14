@@ -56,8 +56,7 @@ approved: true
 ## 画面要件（あれば）
 
 - 対象画面: 自分の報告一覧・詳細画面（overview.md §1）
-- golden: `acceptance/golden/slice-05-report-history.png`（Phase B で実装より先に撮る）
-- マスクする要素: Phase B の golden 撮影時に確定
+- golden: **撮影不可**（reference-mockが文書ベースのため。`docs/memory-bank/decision-reference-mock-document-based-process-2026-07-14.md`）。実装後の見た目は別途手動確認する。
 
 ---
 
