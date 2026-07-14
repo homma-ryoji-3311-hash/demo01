@@ -46,10 +46,6 @@ export const reportsRepository = {
     return latest;
   },
 
-  listConfirmedByUserId(userId: string): Report[] {
-    return [...reportsById.values()].filter((r) => r.user_id === userId && r.status === 'confirmed');
-  },
-
   // slice-04（確定）実装前の暫定シード。「前回の確定済み報告」の参照表示(AC-5)を検証可能にするための
   // テスト専用フィクスチャ。呼び出し側（service）が対象ユーザーを限定する。
   // slice-04がconfirmを実装したら、この関数は不要になり削除する（fix-forward候補）。
