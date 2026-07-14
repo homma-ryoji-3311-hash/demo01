@@ -12,4 +12,10 @@ export default defineConfig({
       'Content-Type': 'application/json',
     },
   },
+  // golden スクリーンショット比較の閾値（ADR-0008）。最初はゆるく、Flywheelで締める。
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.02,
+    },
+  },
 });
