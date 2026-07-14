@@ -8,10 +8,12 @@
 Repo Base（`staff-report-system`／参照モック＝answer key）の挙動を、AI駆動のチーム開発で
 TypeScript(Express) + Next.js に再実装するプロジェクト。最終的に Java/Spring へ一括移行する。
 第一目的は**再現可能な型（方法論）の確立**であり、機能前進ではない。
+型は縦切り1本の完走ではなく、**各フェーズ（上流→下流→統合）を全スライスに対して回し切ること**で確立する
+（ADR-0016。縦切り＝tracer bullet は廃止。全上流→全下流→全統合のフェーズ型大バッチ）。
 
 - 用語の正本: `CONTEXT.md`
 - 手順の正本: `docs/playbook.md`（基本設計から PR 作成まで、誰が何をするか）
-- 決定の正本: `docs/adr/`（0001 ブラックボックス / 0011 Express＋構造規約 / 0012 `/spec` 2フェーズ / 0003 経路B 未確定）
+- 決定の正本: `docs/adr/`（0001 ブラックボックス / 0011 Express＋構造規約 / 0012 `/spec` 2フェーズ / 0003 経路B 未確定 / 0016 フェーズ型大バッチ / 0017 上流は PM／AIアーキ同列）
 - 実装の正本: Git の生出力（`git status` / `git log --oneline -3`）
 
 ## 1. 絶対禁止（違反はブロックされる）
@@ -55,8 +57,8 @@ TypeScript(Express) + Next.js に再実装するプロジェクト。最終的�
 | 誰 | コマンド | 何をするか |
 |---|---|---|
 | 全員 | `/board` | スライスレジストリの採番・一覧・現在地。**番号不変・append-only**（ADR-0013） |
-| **PM** | `/spec <slice>` | **A**: grill で仕様表を作る → **PM が `approved: true`** → **B**: `acceptance/` へ翻訳 → **参照モックで緑** → golden 撮影 → **backend で赤** → PR |
-| 上流 | `/brief <slice>` | スライス指示書（6項目）を作り、issue を起票する |
+| **PM／AIアーキ** | `/spec <slice>` | **A**: grill で仕様表を作る → **`approved: true`（どちらが押してもよい）** → **B**: `acceptance/` へ翻訳 → **参照モックで緑** → golden 撮影 → **backend で赤** → PR（ADR-0017） |
+| 上流（PM／AIアーキ） | `/brief <slice>` | スライス指示書（6項目）を作り、issue を起票する |
 | 下流 | **`/slice <issue>`** | **幸福経路。** 下の5本を内部で順に実行する |
 | 下流 | `/pickup <issue>` | issue から slice ID、**repo から指示書**、`feature/slice-NN` を切る |
 | 下流 | `/explore` | Explore サブエージェントが「触ってよい範囲の地図」を返す |
@@ -70,7 +72,7 @@ TypeScript(Express) + Next.js に再実装するプロジェクト。最終的�
 （`/compact` は使わない。要約自体が枠を食う）。**1スライスで再作成が2回を超えたら「スライスが大きすぎる」**
 として報告 → Flywheel の観察項目にする。
 
-規律は `/tdd`、詰まったら `/diagnosing-bugs`（いずれも mattpocock/skills v1.1）。最新 API は Context7 に聞く。
+規律は `/tdd`、詰まったら `/diagnose`（いずれも mattpocock/skills vendor 版。出典 SHA は各 PROVENANCE.md）。最新 API は Context7 に聞く。
 
 ## 5. アーキテクチャの骨格
 
@@ -102,11 +104,15 @@ TypeScript(Express) + Next.js に再実装するプロジェクト。最終的�
 
 | 誰 | 何をする |
 |---|---|
-| PM | 要件・基本設計の承認・仕様表・合成フィクスチャの正本。**層境ゲートの GO/NO-GO**。CLAUDE.md を承認 |
+| PM | 要件・基本設計の承認・仕様表・合成フィクスチャの正本。**層境ゲート（工程8）の GO/NO-GO**。CLAUDE.md を承認 |
 | AIアーキテクト | `.claude/` の箱・hooks・エージェント・skills。`/spec` を回す。Harness-Keeper の帽子も被る |
 | リーダー | 下流の窓口（一次質問）、枠と禁止事項の文言、救援の記録。**PM の代理**（記録を残す） |
 | 実装メンバー（下流） | feature ブランチで緑にして PR。main に触らない |
 | 統合役（下流・中級） | 当該スライスを再実行＋秘密＋差分を確認し、**main へマージ**（不可逆操作） |
+
+**キックオフ（Step 0・工程1・工程2）と上流フェーズ（工程3〜5）では、PM と AIアーキは完全同列**（ADR-0017）。
+各工程の作業も、工程1 の設計凍結 GO・工程3/4 の `approved: true`・上流の重量ゲートも、**どちらが押してもよい**（相互代行可）。
+ただし下流・統合は不変——**工程8 の層境ゲートは PM（代理リーダー1名）、不可逆操作は統合役ただ1人**。ADR-0015 の自己承認ガードも統合フェーズで維持する。
 
 **ゲートは全 PR に掛かる。重さは CI が決める**（ADR-0007）。`irreversible` ラベル（migration・認可・`acceptance/`）
 が付いた PR では、PM が **diff を自分で読む**。それ以外は Audit と統合役の結果を読んで判断する。
@@ -127,17 +133,4 @@ TypeScript(Express) + Next.js に再実装するプロジェクト。最終的�
 ## 9. Pro 枠（全員必修）
 
 - 使用量は「5時間セッション × 週次」の2層。**全サーフェスが同一プールを消費**する。
-- タスク切替時は `/clear`。残量は `Settings > Usage` が唯一の正、消費は `/cost`・内訳は `/context`。
-- モデルは `/slice` の既定（Sonnet）から変えない。`/effort` を上げるのは長考が要るときだけ。
-- 使用量クレジットは各自事前に有効化しておく（リセット待ちで層境ゲートを止めない）。
-
-詳細は KB-04。
-
-## 10. このファイルの育て方
-
-- **剪定基準: 「この行を消したら Claude はミスをするか？」** No なら消す。コードから読めることは書かない。
-- **2ストライクルール**: 同じ修正指示を2回したら書く。1回では書かない。
-- **破られ続けるルールは hook に昇格**させる（宣言 → hook/permissions/CI へ強制力を上げる）。
-- 昇格候補は `docs/memory-bank/` に隔離し、**PM 承認後に本体へ統合**する。
-- 棚卸しは Harness-Keeper の定常業務。**古いルールは欠落より有害。**
-- ロール固有の指示はここに書かず `.claude/agents/*.md` 本文へ。
+- タスク切替時は `/clear`。残量は `Settings > Usage` 

@@ -13,20 +13,24 @@
 
 ## 全体像
 
+**進め方はフェーズ型大バッチ（ADR-0016）。** 縦切りで1本を端まで通すのではなく、各フェーズを**全スライスに対して回し切ってから**次フェーズへ移る。
+
 ```
-【一度きり】 Step 0 リポジトリ準備 → 工程1 基本設計 → 工程2 issue 分解＋/board 採番
-【毎スライス・上流】 工程3 /spec PhaseA（grill→仕様表）→【PM 承認】→ 工程4 /spec PhaseB（翻訳＋golden）→ 工程5 /brief
-【毎スライス・下流】 工程6 /slice（AFK）
-【毎スライス・関所】 工程7〜9b /integrate（PhaseA 再検証 →【工程8 PM GO】→ PhaseB マージ → 工程9b 総合テスト）
+【一度きり】 Step 0 リポジトリ準備 → 工程1 基本設計＋設計凍結ゲート → 工程2 issue 分解＋/board 採番
+【上流フェーズ：全スライス】 各 slice で 工程3 /spec PhaseA（grill→仕様表）→【承認：PM／AIアーキ同列・ADR-0017】→ 工程4 /spec PhaseB（翻訳＋golden）→ 工程5 /brief。全 slice 完了まで繰り返す
+   └─ 全スライス上流完了 →【CI 構築：下流フェーズ突入の必須前提（ADR-0016）】
+【下流フェーズ：全スライス】 各 slice で 工程6 /slice（AFK）。全 slice 実装完了まで繰り返す
+【統合フェーズ：全スライス】 各 PR で 工程7〜9b /integrate（PhaseA 再検証 →【工程8 PM GO】→ PhaseB マージ → 工程9b 総合テスト）。CI マージキューが直列マージ＋再検証を自動化
 【却下・回帰したら】 工程10 /flywheel ／ 総合テスト赤は /board で回帰スライスを append して fix-forward
 【各工程の入口】 /board で現在地を確認（read-only）
 ```
 
-**順序は固定。** 特に「失敗する受け入れテストが main にある」状態を作ってから issue を配ること（工程4→5）。逆にすると下流の `/pickup` が指示書「2. 受け入れテスト」を指せない。
+**フェーズ順・工程順は固定。** 特に「失敗する受け入れテストが main にある」状態を全スライス分作ってから実装フェーズへ移ること（上流フェーズ→下流フェーズ）。逆にすると下流の `/pickup` が指示書「2. 受け入れテスト」を指せない。
 
 **工程3→4 の間には人の承認が入る**（`approved: true`）。ひと続きで走らせると、AI が自分で書いた仕様表を自分で翻訳して自分で PR を出すことになる（ADR-0012）。
 
 **工程7→9 の間にも人の判断が入る**（工程8 の PM GO）。`/integrate` は `/spec` と同型の二フェーズで、Phase A（再検証）で停止して GO を待ち、Phase B（マージ→総合テスト）へ進む（ADR-0014）。**不可逆操作は人の GO の後だけ。**
+統合フェーズは全 PR が一斉到着し、マージのたびに残 PR が古くなる（Require branches up to date）。この直列マージ＋再検証は **CI マージキューが担う**（ADR-0016。だから CI が下流フェーズ突入の前提）。
 
 ---
 
@@ -35,25 +39,25 @@
 ```mermaid
 flowchart TD
     subgraph ONCE["🟩 一度きり（キックオフ）"]
-        S0["Step 0 リポジトリ準備<br/><b>AIアーキ</b><br/>―<br/>vendor / ブランチ保護 / hooks 配置"]
-        P1["工程1 基本設計<br/><b>AIアーキ→PM承認</b><br/>素の会話 ＋ grill-with-docs<br/>→ docs/design/overview.md"]
-        P2["工程2 issue 分解<br/><b>PM＋AIアーキ</b><br/>to-tickets<br/>→ docs/slices/README.md"]
+        S0["Step 0 リポジトリ準備<br/><b>PM／AIアーキ（同列）</b><br/>―<br/>vendor / ブランチ保護 / hooks 配置"]
+        P1["工程1 基本設計<br/><b>PM／AIアーキ（同列・承認も相互可）</b><br/>素の会話 ＋ grill-with-docs<br/>→ docs/design/overview.md"]
+        P2["工程2 issue 分解<br/><b>PM／AIアーキ（同列）</b><br/>to-issues<br/>→ docs/slices/README.md"]
         S0 --> P1 --> P2
     end
 
-    subgraph UP["🟩 毎スライス・上流"]
-        P3["工程3 <b>/spec &lt;slice&gt;</b> Phase A<br/><b>PM</b> が叩き、grill に答える<br/>grill-with-docs<br/>→ docs/spec/slice-NN.md"]
-        P4["工程4 <b>/spec &lt;slice&gt;</b> Phase B<br/><b>PM</b> が再実行<br/>runner＋Playwright＋Context7<br/>→ acceptance/ ＋ golden/"]
-        G1{"重量ゲート<br/><b>PM</b> が diff を読む"}
-        P5["工程5 <b>/brief &lt;slice&gt;</b><br/><b>リーダー</b>＋AIアーキ＋PM<br/>GitHub MCP で issue 起票<br/>→ docs/slices/slice-NN.md"]
-        AP{"<b>PM</b> が approved: true<br/>に変えるまで停止"}
+    subgraph UP["🟩 上流フェーズ（全スライス）"]
+        P3["工程3 <b>/spec &lt;slice&gt;</b> Phase A<br/><b>PM／AIアーキ（同列）</b> が叩き、grill に答える<br/>grill-with-docs<br/>→ docs/spec/slice-NN.md"]
+        P4["工程4 <b>/spec &lt;slice&gt;</b> Phase B<br/><b>PM／AIアーキ（同列）</b> が再実行<br/>runner＋Playwright＋Context7<br/>→ acceptance/ ＋ golden/"]
+        G1{"重量ゲート<br/><b>PM／AIアーキ（同列）</b> が diff を読む"}
+        P5["工程5 <b>/brief &lt;slice&gt;</b><br/><b>リーダー</b>＋PM／AIアーキ（同列）<br/>GitHub MCP で issue 起票<br/>→ docs/slices/slice-NN.md"]
+        AP{"<b>PM／AIアーキ（同列）</b> が approved: true<br/>に変えるまで停止"}
         P3 --> AP -- "承認" --> P4 --> G1 -- GO --> P5
     end
 
-    subgraph DOWN["🟦 毎スライス・下流（AFK：人は介入しない）"]
+    subgraph DOWN["🟦 下流フェーズ（全スライス・AFK：人は介入しない）"]
         D1["<b>/pickup</b> — GitHub MCP で issue<br/>指示書は repo から読む"]
         D2["<b>/explore</b> — Explore(Haiku)<br/>Read/Grep/Glob のみ"]
-        D3["<b>/implement</b> — runner で起動<br/>/tdd・/diagnosing-bugs・Context7<br/>緑までループ"]
+        D3["<b>/implement</b> — runner で起動<br/>/tdd・/diagnose・Context7<br/>緑までループ"]
         D4["<b>/verify</b> — 3判定を機械で○×"]
         D5["<b>/submit</b> — push＋PR(GitHub MCP)<br/>Audit(Opus) が推奨判定<br/>KPI 1行記録"]
         D1 --> D2 --> D3 --> D4
@@ -61,7 +65,7 @@ flowchart TD
         D4 -- "全て○" --> D5
     end
 
-    subgraph GATE["🟨 関所（HITL）＝ /integrate（統合役・二フェーズ）"]
+    subgraph GATE["🟨 統合フェーズ（全スライス・HITL）＝ /integrate（二フェーズ）"]
         H1["工程7 再検証（Phase A）<br/><b>統合役</b> が /integrate<br/>当該スライス＋秘密＋差分 → 停止"]
         H2{"工程8 層境ゲート<br/><b>PM</b>（代理：リーダー1名）<br/>軽量／重量は CI ラベルで決まる"}
         H3["工程9 マージ（Phase B）<br/><b>統合役</b> が /integrate 再実行<br/>gh pr merge（server-side）"]
@@ -74,13 +78,17 @@ flowchart TD
     RG["回帰：分析で2分岐<br/>/board が回帰スライスを append"]
 
     P2 --> P3
-    P5 -->|"issue 番号 N を渡す"| Human(["👤 実装メンバー<br/>/slice N と打つだけ"])
+    P5 -. "次スライスへ（全 slice 分）" .-> P3
+    P5 ==>|"全スライス上流完了"| CI["🟥 CI 構築（下流突入の必須前提）<br/>受け入れCI＋マージキュー・ADR-0016"]
+    CI ==> Human(["👤 実装メンバー<br/>各 slice で /slice"])
     Human --> D1
-    D5 --> H1
+    D5 -. "次スライスへ（全 slice 分）" .-> D1
+    D5 ==>|"全スライス実装完了"| H1
     H1 -. "NG：差し戻し" .-> D3
     H2 -. "NO-GO" .-> FW
-    H5 -- "緑：完了" --> Done(["✅ main 前進"])
     H5 -. "赤：fix-forward" .-> RG
+    H5 -- "緑：次PRへ（残あり）" --> H1
+    H5 ==>|"全PR統合完了"| Done(["✅ 全スライス main 前進"])
     RG -.->|"既存 E2E が赤"| P5
     RG -.->|"総合スイートに穴"| P3
     FW -.->|"スライス設計の欠陥"| P2
@@ -97,13 +105,14 @@ flowchart TD
     class P3,P4,P5 up
     class AP gate
     class D1,D2,D3,D4,D5 down
-    class G1,H1,H2,H3,H4,H5 gate
+    class G1,H1,H2,H3,H4,H5,CI gate
     class FW,RG fly
     class Human,Done human
 ```
 
-> **凡例**：緑＝上流／青＝下流（AFK）／黄＝人が判定する関所（HITL）／紫＝Flywheel の書き戻し。
-> 実線＝幸福経路、点線＝差し戻し。**人がスラッシュを叩くのは起点だけ**で、終点の判定まで無人で回る。
+> **凡例**：緑＝上流フェーズ／青＝下流フェーズ（AFK）／黄＝統合フェーズ（HITL）／紫＝Flywheel の書き戻し。
+> 細実線＝各フェーズ内の幸福経路、点線＝差し戻し・次スライスへの周回、**太線＝フェーズ移行（全スライス完了が条件）**。
+> **人がスラッシュを叩くのは各フェーズの起点だけ**で、フェーズ内は終点の判定まで無人で回る。
 
 ---
 
@@ -113,16 +122,16 @@ flowchart TD
 
 | 工程 | 人（判断） | 叩くコマンド | 使う skill | 使う MCP | サブエージェント | 成果物 |
 |---|---|---|---|---|---|---|
-| **Step 0** 準備 | AIアーキ | ―（手作業） | ― | ― | ― | `.claude/` `reference-mock/` ブランチ保護 |
-| **工程1** 基本設計 | AIアーキ→**PM 承認** | ―（素の会話） | `grill-with-docs` | ― | ― | `docs/design/overview.md` |
-| **工程2** issue 分解 | PM＋AIアーキ | **`/board`** | `to-tickets` | ― | ― | `docs/slices/README.md`（採番済みレジストリ） |
+| **Step 0** 準備 | PM／AIアーキ（同列） | ―（手作業） | ― | ― | ― | `.claude/` `reference-mock/` ブランチ保護 |
+| **工程1** 基本設計 | PM／AIアーキ（同列・承認も相互可） | ―（素の会話） | `grill-with-docs` | ― | ― | `docs/design/overview.md` |
+| **工程2** issue 分解 | PM／AIアーキ（同列） | **`/board`** | `to-issues` | ― | ― | `docs/slices/README.md`（採番済みレジストリ） |
 | **各工程の入口** 現在地確認 | その工程を始める人 | **`/board`** | ― | GitHub（gh で状態読取） | ― | 表示のみ（read-only） |
-| **工程3** 仕様表（Phase A） | **PM**（叩く・答える） | **`/spec <slice>`** | 自作 ＋ **`grill-with-docs`** | ― | ― | `docs/spec/slice-NN.md`（`approved: true`） |
-| **工程4** 翻訳＋golden（Phase B） | **PM**（叩く・ゲート） | **`/spec <slice>`**（再実行） | 自作 | **runner**（起動）＋**Context7**（最新API）＋**GitHub**（PR） | ― | `acceptance/` `acceptance/golden/` |
-| **工程5** 指示書＋起票 | **リーダー**（枠・禁止事項）＋AIアーキ（技術の形）＋PM（受入基準） | **`/brief <slice>`** | 自作 | **GitHub**（issue 起票） | ― | `docs/slices/slice-NN.md` ＋ issue |
+| **工程3** 仕様表（Phase A） | **PM／AIアーキ（同列）**（叩く・答える） | **`/spec <slice>`** | 自作 ＋ **`grill-with-docs`** | ― | ― | `docs/spec/slice-NN.md`（`approved: true`） |
+| **工程4** 翻訳＋golden（Phase B） | **PM／AIアーキ（同列）**（叩く・ゲート） | **`/spec <slice>`**（再実行） | 自作 | **runner**（起動）＋**Context7**（最新API）＋**GitHub**（PR） | ― | `acceptance/` `acceptance/golden/` |
+| **工程5** 指示書＋起票 | **リーダー**（枠・禁止事項）＋**PM／AIアーキ（同列）**（技術の形・受入基準） | **`/brief <slice>`** | 自作 | **GitHub**（issue 起票） | ― | `docs/slices/slice-NN.md` ＋ issue |
 | **工程6-1** pickup | 実装メンバー | `/slice <issue>` が内部実行 | 自作 | **GitHub**（issue 取得） | ― | `feature/slice-NN` ブランチ |
 | **工程6-2** explore | 〃 | 〃 | 自作 | ― | **Explore**（Haiku・Read/Grep/Glob） | 触ってよい範囲の地図 |
-| **工程6-3** implement | 〃 | 〃 | 自作 ＋ **`/tdd`** ＋ **`/diagnosing-bugs`** | **runner**（起動・ログ）＋**Context7** | ― | 緑になった実装 |
+| **工程6-3** implement | 〃 | 〃 | 自作 ＋ **`/tdd`** ＋ **`/diagnose`** | **runner**（起動・ログ）＋**Context7** | ― | 緑になった実装 |
 | **工程6-4** verify | 〃 | 〃 | 自作 | **runner** | ― | 3判定の○× |
 | **工程6-5** submit | 〃 | 〃 | 自作 | **GitHub**（push・PR） | **Audit**（Opus・Bash なし・`express-review-rules` を参照） | PR ＋ 推奨判定 ＋ KPI 1行 |
 | **工程7** 再検証（Phase A） | **統合役** | **`/integrate`** | 自作 | **runner** | ― | 再検証結果 → 停止（GO 待ち） |
@@ -139,8 +148,8 @@ flowchart TD
 | MCP | `teamdev-test-runner`（runner） | skill が内部で呼ぶ。**起動するだけ。採点はテストFW** |
 | MCP | `Context7` | `/implement` `/spec`。存在しない API のリトライを潰す |
 | MCP | `GitHub`（toolsets: issues, pull_requests） | `/pickup` `/submit` `/brief` |
-| 既製 skill | `/tdd` `/diagnosing-bugs`（mattpocock） | `/implement` が内部で呼ぶ |
-| 既製 skill | `grill-with-docs` `to-tickets`（mattpocock） | 上流が直接使う |
+| 既製 skill | `/tdd` `/diagnose`（mattpocock） | `/implement` が内部で呼ぶ |
+| 既製 skill | `grill-with-docs` `to-issues`（mattpocock） | 上流が直接使う |
 | サブエージェント | `Explore`（Haiku・read-only） | `/explore` が起動。地図だけ返す |
 | サブエージェント | `Audit`（Opus・Bash なし） | `/submit` が diff を注入して起動。**推奨判定のみ。マージしない** |
 | 監査型 skill | `express-review-rules`（`user-invocable: false`） | Audit が背景知識として読む |
@@ -150,8 +159,8 @@ flowchart TD
 > **制御はメインセッションが握る（ハブ＆スポーク）。** サブエージェント同士はバトンを渡さない。
 > **並列にしない。** Opus は Audit にのみ温存する。
 
-> **mattpocock/skills の版**：本書のスキル名は **v1.1**（2026-07-08）準拠。
-> 旧名 `diagnose`→`diagnosing-bugs`、`to-issues`＋`to-plan`→`to-tickets`、`to-prd`→`to-spec`。
+> **mattpocock/skills の版**：vendor は commit `b8be62f`（2026-07-13 取得。正は各 skill の PROVENANCE.md）。
+> スキル名は**オリジナルのまま**（`diagnose`・`to-issues`・`to-prd` 等）。旧記述「v1.1 で `diagnose`→`diagnosing-bugs`、`to-issues`＋`to-plan`→`to-tickets` に改名」は**誤記**のため削除（2026-07-13 訂正）。実名は `to-issues`・`to-prd`（統合・改名なし）。
 > matt 版の新スキル **`implement` は自作 `/implement` と名前衝突するため導入しない**（`/handoff` 改名と同型の問題）。
 > `grill-with-docs`・`tdd` は `codebase-design`・`domain-modeling` に依存するようになったので、部品抜粋でもこの2つを同梱する。
 
@@ -165,19 +174,20 @@ flowchart TD
 |---|---|---|---|
 | **Step 1** | キックオフ週 | CLAUDE.md 剪定／`PreToolUse`（危険コマンド deny-list＋protect-paths）／runner で pass/fail シグナルを確保 | ✅ **完了済み** |
 | **Step 2** | 初スプリント中 | `PostToolUse`（lint＋型チェックの feedback）／`Stop` hook／`acceptance/` の read-only 三層化／`/spec` `/brief` の作成／golden 閾値の較正 | 下流が `/slice` を1本完走 |
-| **Step 3** | **スライス5本 or 初スプリント末**（早い方） | **受け入れテスト CI**（`reference-mock`＋`backend`＋`frontend`＋Playwright）／`irreversible` ラベル自動付与／**依存方向のカスタム lint** | リグレッションが機械で止まる |
+| **Step 3** | **下流フェーズ突入の前（必須前提・ADR-0016）** | **受け入れテスト CI**（`reference-mock`＋`backend`＋`frontend`＋Playwright）＋**マージキュー／required check**／`irreversible` ラベル自動付与／**依存方向のカスタム lint** | 統合フェーズの一斉到着を直列マージ＋再検証で捌ける |
 | **Step 4** | 結合E2E期以降 | Playwright MCP（診断専用）／DBHub（read-only）／doc-gardening | ― |
 
-**Step 3 は期限を切ってある**（ADR-0010）。それまでは統合役が全スイートをローカル実行して代替するが、
-**「個別に緑な2つの PR がマージ後に赤」は構造的に検出できない**。人の落ち度ではない。
+**Step 3 は下流フェーズ突入の必須前提**（ADR-0016 が ADR-0010 の「初スプリントでは CI を組まない」時期指定を上書き）。
+大バッチでは全 feature PR が統合フェーズ末尾に一斉到着し、統合役1人のローカル直列実行では捌けない。
+CI（マージキュー）が無いまま下流フェーズに入ると、**「個別に緑な2つの PR がマージ後に赤」を直列に手作業で潰す羽目になり停滞する**。
 
 **Step 3 の3点は Express 化の帰結でもある**（ADR-0011）。フレームワークが構造を強制しないので、
 `router → service → repository` の依存方向は**カスタム lint で機械強制しないと必ず崩れる**。
 
-### 初スプリントで通すもの（目的C）
+### 初スプリントで通すもの（ADR-0016 でフェーズ型に更新）
 
-**下流全員が最初の1スライスを完走する**（Time-to-first-green）。最初の縦切りは **報告 → 要約 → 確認 → 確定**。
-参照モックで検証済みの経路なので、初回の成功確率が最も高い。
+**縦切りの「Time-to-first-green（最初の1スライスを端まで通す）」は撤回**（ADR-0016）。代わりに**上流フェーズを回し切る**ことを初期の到達目標に置く。
+最初に着手する縦切りは **報告 → 要約 → 確認 → 確定**（参照モックで検証済みの経路で、仕様の書き起こしが最も安定する）だが、これは"端まで通す1本"ではなく**上流フェーズの先頭スライス**として扱う。
 
 ---
 
@@ -189,7 +199,7 @@ flowchart TD
 
 人が文章を書くのは次の3箇所だけ。テンプレは **git 管理下**に置く（＝信頼できる入力）。
 
-### ① 工程1 基本設計の起動プロンプト（AIアーキ・1回きり）
+### ① 工程1 基本設計の起動プロンプト（PM／AIアーキ同列・1回きり）
 
 コマンド化しないと決めた唯一の工程なので、この文言が実質的な仕様になる。
 
@@ -234,7 +244,7 @@ AI が下書きを持ってくると、人は反射的に頷く。`source: PM` �
 
 | テンプレ | 誰が埋めるか | 誰が読むか |
 |---|---|---|
-| `docs/spec/_template.md` | `/spec` Phase A（PM が答える） | 機械（skill） |
+| `docs/spec/_template.md` | `/spec` Phase A（PM／AIアーキが答える） | 機械（skill） |
 | `docs/slices/_template.md` | `/brief`（リーダーが枠と禁止事項を書く） | 機械（skill）＋`/pickup` |
 
 **人が読む手順書と、機械が読むテンプレを分ける。** SKILL.md は Claude が毎回読むので、人向けの用例をそこに入れるのは枠の無駄。
@@ -276,6 +286,8 @@ AI が下書きを持ってくると、人は反射的に頷く。`source: PM` �
 - コマンド化しない。1回きりの判断業務。素の会話で回す。
 - **成果物の分担に注意**：`overview.md` を書かせるのは**①起動プロンプト**（素の会話）。`grill-with-docs` は overview.md を生成しない——その出力は **`CONTEXT.md`（用語）と `docs/adr/`（決定）のみ**。フロー図の「→ docs/design/overview.md」は工程1全体の成果物を指す。
 
+**設計凍結ゲート（工程1 の末尾・ADR-0016）**：大バッチ上流に着手する前に、`overview.md` の **★新規決定＝`source: PM`（参照モックに無い本当の設計）を全部解決・必要なら ADR 化**する。理由は、大バッチでは全 slice の仕様がこの設計に乗って凍結され、`source: PM` だけが answer-key を持たず下流フェーズまで誤りが露見しないため（`source: reference-mock` は工程4 で自己検証される）。既存の心得「未定が残るまま `approved: true` にしない」をバッチ全体へ拡張したもの。凍結後の変更は回帰スライス（fix-forward）で処理する。
+
 **落とし穴**：参照モックにない部分（＝本当の設計）と、書き起こし部分を混ぜないこと。混ぜると上流が「全部を一から考える」モードに入り、初スプリントが溶ける。
 
 ---
@@ -284,12 +296,12 @@ AI が下書きを持ってくると、人は反射的に頷く。`source: PM` �
 
 **担当：PM（優先順位・依存）／ AIアーキ（技術的な形）**
 
-- 道具は `to-tickets`（mattpocock）→ **`/board`**。`to-tickets` が縦切り分解した生の一覧を、`/board` が **`docs/slices/README.md`**（スライスレジストリ＝一覧と依存順）に**採番して**書き出す。
-- **切り方は縦切り（tracer bullet）。** 層別（バックエンドだけ・画面だけ）にしない。
+- 道具は `to-issues`（mattpocock）→ **`/board`**。`to-issues` が縦切り分解した生の一覧を、`/board` が **`docs/slices/README.md`**（スライスレジストリ＝一覧と依存順）に**採番して**書き出す。
+- **分解は縦切り（各スライスは端まで薄く貫く1機能）。** 層別（バックエンドだけ・画面だけ）にしない。**※縦切り「分解」は維持。撤回したのは縦切り「フロー（1本を端まで通す）」の方**（ADR-0016）。
 - **粒度の基準：受入基準 ≤3〜5。** 1 issue = 1 スライス = 1 セッション。
-- 最初の縦切りは **報告 → 要約 → 確認 → 確定**（参照モックで検証済みの経路。初回成功確率が最も高い）。
+- 依存順で並べる（下流フェーズ・統合フェーズの実装/マージ順を縛るのは依存列）。**"最初に緑にする1本"という特別扱いはしない**（大バッチではフェーズ単位で流す。ADR-0016）。
 
-**`/board` の初回起動がここ。** `docs/design/overview.md` と `to-tickets` の分解を読み、依存順に **`slice-01..NN` を一括採番**して表を作る。**番号は以後不変・append-only**（分割・回帰で生じる新スライスは末尾に足し、既存番号は振り直さない。ADR-0013）。以降の工程では入口で `/board` を叩けば「今どのスライスがどの工程か」が git/ファイル/gh から推論されて出る。
+**`/board` の初回起動がここ。** `docs/design/overview.md` と `to-issues` の分解を読み、依存順に **`slice-01..NN` を一括採番**して表を作る。**番号は以後不変・append-only**（分割・回帰で生じる新スライスは末尾に足し、既存番号は振り直さない。ADR-0013）。以降の工程では入口で `/board` を叩けば「今どのスライスがどの工程か」が git/ファイル/gh から推論されて出る。
 
 **この時点では issue を GitHub に起票しない。** 起票は工程5。
 
@@ -407,7 +419,7 @@ slice-01-report-create
 
 ---
 
-## 工程6：`/slice <issue>`（毎スライス・下流・AFK）
+## 工程6：`/slice <issue>`（下流フェーズ・各スライス・AFK）
 
 **担当：実装メンバー（初級）**
 
@@ -517,4 +529,4 @@ PM の GO（工程8）を確認したら、**もう一度 `/integrate <PR>` を�
 
 | 分析結果 | 入口 | 理由 |
 |---|---|---|
-| **既存の総合 E2E が赤**（テストは在った） | **工程5 `/brief`** で回帰スライスを起票 → 工程6 で緑化 | テストが既にあるので下�
+| **既存の総合 E2E が赤**（テストは在った） | **工程5 `/brief`** で回帰スライスを起票 → 工程6 で緑化 | テストが既にあるので下
