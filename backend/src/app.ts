@@ -2,6 +2,7 @@ import 'express-async-errors';
 import express from 'express';
 import { healthRouter } from './health/health.router';
 import { authRouter } from './auth/auth.router';
+import { reportsRouter } from './reports/reports.router';
 
 // 合成ルート（ADR-0011）。ここだけが具象を組み立てる。
 export function createApp() {
@@ -9,6 +10,7 @@ export function createApp() {
   app.use(express.json());
   app.use(healthRouter);
   app.use(authRouter);
+  app.use(reportsRouter);
   return app;
 }
 
