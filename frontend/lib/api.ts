@@ -30,32 +30,10 @@ export interface User {
   group_id: string;
 }
 
-export interface Report {
-  id: string;
-  user_id: string;
-  raw_text: string;
-  ai_summary_json: {
-    incidents: string[];
-    achievements: string[];
-    issues: string[];
-    skills: string[];
-    needs_review?: boolean;
-    needs_review_reason?: string;
-  } | null;
-  status: 'draft' | 'confirmed';
-  created_at: string;
-}
-
+// reports関連の型・APIメソッドはslice-02以降がそれぞれ自分のスコープ分だけ追記する
+// （backend/src/reports/*と同じ、スライスごとの漸進的拡張パターン。slice-01はauthのみ）。
 export const api = {
   login: (email: string) => request<{ ok: true }>('/test-auth/login', { method: 'POST', body: JSON.stringify({ email }) }),
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
   me: () => request<User>('/me'),
-  createReport: (rawText: string) => request<Report>('/reports', { method: 'POST', body: JSON.stringify({ raw_text: rawText }) }),
-  patchReport: (id: string, patch: { raw_text?: string; ai_summary_json?: Report['ai_summary_json'] }) =>
-    request<Report>(`/reports/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
-  latestReport: () => request<Report | null>('/reports/latest'),
-  summarize: (id: string) => request<NonNullable<Report['ai_summary_json']>>(`/reports/${id}/summarize`, { method: 'POST' }),
-  confirmReport: (id: string) => request<Report>(`/reports/${id}/confirm`, { method: 'POST' }),
-  listReports: () => request<Report[]>('/reports'),
-  getReport: (id: string) => request<Report>(`/reports/${id}`),
 };

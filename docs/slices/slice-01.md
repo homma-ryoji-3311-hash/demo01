@@ -14,9 +14,12 @@ Google OAuthログイン（テスト用バイパスAPI経由）と権限境界�
 
 - `backend/src/auth/` （`*.router.ts` / `*.service.ts` / `*.repository.ts` / `*.schema.ts`）
 - `backend/src/app.ts`（authルーターの合成のみ）
+- `frontend/app/login/**`（ログイン画面。**2026-07-15 指示書改訂**：アプリ全体の動作にログイン導線が必須なため追記。PM承認済み）
+- `frontend/app/page.tsx`（ログインへの導線のみ。同改訂）
+- `frontend/lib/api.ts`（全スライス共通のAPIクライアント基盤。**このスライスでは`login`/`logout`/`me`のみ追加すること。`reports`関連のメソッド・型は追加しない**＝slice-02以降が自分のスコープ分だけ追記する漸進的拡張パターン）
 - 上記範囲の unit テスト
 
-**範囲外**：`acceptance/` `reference-mock/` `docs/` `.claude/`、`reports`関連の実装（slice-02以降）、DB マイグレーション
+**範囲外**：`acceptance/` `reference-mock/` `docs/`（本改訂を除く） `.claude/`、`reports`関連の実装（slice-02以降）、DB マイグレーション
 
 ## 4. 貼り付け用の枠（`/implement` が読む）
 
