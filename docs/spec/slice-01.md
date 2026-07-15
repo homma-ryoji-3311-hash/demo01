@@ -1,6 +1,6 @@
 ---
 slice: slice-01-auth
-approved: false          # 画面要件の実質改訂のため再グリル中（2026-07-15）。PM承認後にtrueへ
+approved: true
 ---
 
 ## AC-1 許可ドメインのアカウントでログインすると認証済みセッションが確立する
