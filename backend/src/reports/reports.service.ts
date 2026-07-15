@@ -19,7 +19,7 @@ export const reportsService = {
   patchReport(
     userId: string,
     reportId: string,
-    patch: { raw_text?: string; ai_summary_json?: Record<string, unknown> },
+    patch: { raw_text?: string; ai_summary_json?: object },
   ): Report {
     const report = reportsRepository.findById(reportId);
     if (!report) {
@@ -44,7 +44,7 @@ export const reportsService = {
     // degrade（report-quality-design.md §10.1）: 呼び出し失敗はここで止まり、
     // 下書き保存(PATCH)自体は影響を受けない（router側で502のみ返す）。
     const summary = await ruleBasedSummarizer.summarize(report.raw_text);
-    reportsRepository.update(reportId, { ai_summary_json: summary as unknown as Record<string, unknown> });
+    reportsRepository.update(reportId, { ai_summary_json: summary });
     return summary;
   },
 
