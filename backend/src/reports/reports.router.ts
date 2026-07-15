@@ -1,7 +1,7 @@
 import { Router, type Response } from 'express';
 import { requireAuth, type AuthenticatedRequest } from '../auth/auth.router';
 import { createReportSchema, patchReportSchema } from './reports.schema';
-import { reportsService, ForbiddenError, NotFoundError } from './reports.service';
+import { reportsService, ForbiddenError, NotFoundError, SummarizerFailureError } from './reports.service';
 
 export const reportsRouter = Router();
 
@@ -41,4 +41,26 @@ reportsRouter.patch('/reports/:id', requireAuth, (req: AuthenticatedRequest, res
 reportsRouter.get('/reports/latest', requireAuth, (req: AuthenticatedRequest, res: Response) => {
   const latest = reportsService.getLatestConfirmed(req.user!.id, req.user!.email);
   res.status(200).json(latest ?? null);
+});
+
+reportsRouter.post('/reports/:id/summarize', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const summary = await reportsService.summarizeReport(req.user!.id, req.params.id);
+    res.status(200).json(summary);
+  } catch (err) {
+    if (err instanceof ForbiddenError) {
+      res.status(403).json({ error: 'forbidden' });
+      return;
+    }
+    if (err instanceof NotFoundError) {
+      res.status(404).json({ error: 'not found' });
+      return;
+    }
+    if (err instanceof SummarizerFailureError) {
+      // degrade（report-quality-design.md §10.1）: 失敗を502で返すのみ。下書き保存(PATCH)は別経路で継続可能。
+      res.status(502).json({ error: 'summarizer failed' });
+      return;
+    }
+    throw err;
+  }
 });
