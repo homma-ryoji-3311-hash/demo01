@@ -2,7 +2,8 @@ export interface Report {
   id: string;
   user_id: string;
   raw_text: string;
-  ai_summary_json: Record<string, unknown> | null;
+  // Summarizerの出力(SummaryResult)を含む、要約結果の構造化JSON。
+  ai_summary_json: object | null;
   status: 'draft' | 'confirmed';
   created_at: string;
 }
