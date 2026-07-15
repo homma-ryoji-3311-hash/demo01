@@ -21,6 +21,7 @@ PM 本人の判定も1行残す（監査証跡の一貫性のため）。所有�
 | #18 | (Step0残課題) | 2026-07-14 | 軽量（acceptance/設定のみ） | GO | PM | — | diff精読: Playwrightバージョンpin+閾値追加のみ。path-guard CI初合格を確認 |
 | #20 | slice-01-auth | 2026-07-15 | 重量（認可コード） | GO | PM | — | 受け入れテスト4件緑・CI合格・Audit GO-WITH-FIXES（Major: package.json/tsconfig.jsonが許可リスト外だが実質zod追加1行のみ・是認）。秘密混入なし |
 | #22 | slice-02-report-draft | 2026-07-15 | 重量（`backend/reports`新設・cross-slice依存あり） | GO | PM | — | 受け入れテスト10件緑(slice-01回帰含む)・CI合格・Audit GO-WITH-FIXES。未使用の先回りメソッド(slice-05領域)は削除済み。AC-5前提をテスト検知シードで作る回避策はfix-forward候補として明示的に受入(slice-04実装後に削除予定)。秘密混入なし |
+| #24 | slice-03-summary-review | 2026-07-15 | 重量（Summarizer抽象化層新設） | GO | PM | — | 受け入れテスト15件緑(slice-01/02回帰含む)・CI合格・Audit GO-WITH-FIXES。Major2件(失敗トリガーが一般語と衝突/型キャスト握り潰し)は修正・再検証済み。秘密混入なし |
 
 - **ゲート重量**: `軽量`（Audit＋統合役の結果を読んで判定）／`重量`（`irreversible` ラベル。PM が diff を自分で読む）。
 - **判定**: `GO` / `NO-GO`。NO-GO は差し戻し理由を「根拠」に書き、`docs/metrics/slices.md` の差し戻し理由とも整合させる。
