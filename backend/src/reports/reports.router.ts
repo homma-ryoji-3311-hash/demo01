@@ -1,7 +1,14 @@
 import { Router, type Response } from 'express';
 import { requireAuth, type AuthenticatedRequest } from '../auth/auth.router';
 import { createReportSchema, patchReportSchema } from './reports.schema';
-import { reportsService, ForbiddenError, NotFoundError, SummarizerFailureError } from './reports.service';
+import {
+  reportsService,
+  ForbiddenError,
+  NotFoundError,
+  ConflictError,
+  UnprocessableError,
+  SummarizerFailureError,
+} from './reports.service';
 
 export const reportsRouter = Router();
 
@@ -33,6 +40,10 @@ reportsRouter.patch('/reports/:id', requireAuth, (req: AuthenticatedRequest, res
       res.status(404).json({ error: 'not found' });
       return;
     }
+    if (err instanceof ConflictError) {
+      res.status(409).json({ error: 'report already confirmed' });
+      return;
+    }
     throw err;
   }
 });
@@ -59,6 +70,31 @@ reportsRouter.post('/reports/:id/summarize', requireAuth, async (req: Authentica
     if (err instanceof SummarizerFailureError) {
       // degrade（report-quality-design.md §10.1）: 失敗を502で返すのみ。下書き保存(PATCH)は別経路で継続可能。
       res.status(502).json({ error: 'summarizer failed' });
+      return;
+    }
+    throw err;
+  }
+});
+
+reportsRouter.post('/reports/:id/confirm', requireAuth, (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const report = reportsService.confirmReport(req.user!.id, req.params.id);
+    res.status(200).json(report);
+  } catch (err) {
+    if (err instanceof ForbiddenError) {
+      res.status(403).json({ error: 'forbidden' });
+      return;
+    }
+    if (err instanceof NotFoundError) {
+      res.status(404).json({ error: 'not found' });
+      return;
+    }
+    if (err instanceof ConflictError) {
+      res.status(409).json({ error: 'report already confirmed' });
+      return;
+    }
+    if (err instanceof UnprocessableError) {
+      res.status(422).json({ error: 'raw_text is required' });
       return;
     }
     throw err;
