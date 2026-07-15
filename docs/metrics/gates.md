@@ -23,6 +23,7 @@ PM 本人の判定も1行残す（監査証跡の一貫性のため）。所有�
 | #22 | slice-02-report-draft | 2026-07-15 | 重量（`backend/reports`新設・cross-slice依存あり） | GO | PM | — | 受け入れテスト10件緑(slice-01回帰含む)・CI合格・Audit GO-WITH-FIXES。未使用の先回りメソッド(slice-05領域)は削除済み。AC-5前提をテスト検知シードで作る回避策はfix-forward候補として明示的に受入(slice-04実装後に削除予定)。秘密混入なし |
 | #24 | slice-03-summary-review | 2026-07-15 | 重量（Summarizer抽象化層新設） | GO | PM | — | 受け入れテスト15件緑(slice-01/02回帰含む)・CI合格・Audit GO-WITH-FIXES。Major2件(失敗トリガーが一般語と衝突/型キャスト握り潰し)は修正・再検証済み。秘密混入なし |
 | #26 | slice-04-report-confirm | 2026-07-15 | 重量（確定・不変性ロジック） | GO | PM | — | 受け入れテスト20件緑(slice-01〜03回帰含む)・CI合格・Audit GO（クリーン、指摘なし）。秘密混入なし |
+| #28 | slice-05-report-history | 2026-07-15 | 重量（最終スライス・MVP完走） | GO | PM | — | 受け入れテスト25件緑(MVP全体・slice-01〜05)・CI合格・Audit GO。getDetailがdraft詳細も所有者に返す設計は情報提供として受入（越権なし・禁止AC無し）。秘密混入なし |
 
 - **ゲート重量**: `軽量`（Audit＋統合役の結果を読んで判定）／`重量`（`irreversible` ラベル。PM が diff を自分で読む）。
 - **判定**: `GO` / `NO-GO`。NO-GO は差し戻し理由を「根拠」に書き、`docs/metrics/slices.md` の差し戻し理由とも整合させる。
