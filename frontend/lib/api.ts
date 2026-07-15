@@ -66,4 +66,5 @@ export const api = {
   // (reports.service.ts)と同種のcross-slice依存として層境ゲートで明示する。
   getReport: (id: string) => request<Report>(`/reports/${id}`),
   confirmReport: (id: string) => request<Report>(`/reports/${id}/confirm`, { method: 'POST' }),
+  listReports: () => request<Report[]>('/reports'),
 };
