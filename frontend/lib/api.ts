@@ -30,18 +30,13 @@ export interface User {
   group_id: string;
 }
 
+// docs/spec/slice-02.md: 下書き作成・自動保存・前回参照。ai_summary_jsonの型はslice-03が追記する
+// （backend/src/reports/*と同じ、スライスごとの漸進的拡張パターン）。
 export interface Report {
   id: string;
   user_id: string;
   raw_text: string;
-  ai_summary_json: {
-    incidents: string[];
-    achievements: string[];
-    issues: string[];
-    skills: string[];
-    needs_review?: boolean;
-    needs_review_reason?: string;
-  } | null;
+  ai_summary_json: Record<string, unknown> | null;
   status: 'draft' | 'confirmed';
   created_at: string;
 }
@@ -50,12 +45,9 @@ export const api = {
   login: (email: string) => request<{ ok: true }>('/test-auth/login', { method: 'POST', body: JSON.stringify({ email }) }),
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
   me: () => request<User>('/me'),
-  createReport: (rawText: string) => request<Report>('/reports', { method: 'POST', body: JSON.stringify({ raw_text: rawText }) }),
-  patchReport: (id: string, patch: { raw_text?: string; ai_summary_json?: Report['ai_summary_json'] }) =>
+  createReport: (rawText: string) =>
+    request<Report>('/reports', { method: 'POST', body: JSON.stringify({ raw_text: rawText }) }),
+  patchReport: (id: string, patch: { raw_text?: string }) =>
     request<Report>(`/reports/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   latestReport: () => request<Report | null>('/reports/latest'),
-  summarize: (id: string) => request<NonNullable<Report['ai_summary_json']>>(`/reports/${id}/summarize`, { method: 'POST' }),
-  confirmReport: (id: string) => request<Report>(`/reports/${id}/confirm`, { method: 'POST' }),
-  listReports: () => request<Report[]>('/reports'),
-  getReport: (id: string) => request<Report>(`/reports/${id}`),
 };
