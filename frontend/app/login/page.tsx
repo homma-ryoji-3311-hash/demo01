@@ -1,16 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { api, ApiError } from '../../lib/api';
 
 // テスト専用ログインバイパス(docs/spec/slice-01.md AC-1/AC-2)のUI。
 // 本物のGoogle OAuth結線は範囲外（overview.md §1、実装後の手動確認事項）。
+// ログイン後の遷移先(報告入力画面)はslice-02の領域のため、ここでは参照しない。
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -18,7 +18,7 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await api.login(email);
-      router.push('/report/new');
+      setLoggedIn(true);
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
         setError('許可されていないドメインのメールアドレスです。');
@@ -28,6 +28,14 @@ export default function LoginPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (loggedIn) {
+    return (
+      <main>
+        <p role="status">ログインしました。</p>
+      </main>
+    );
   }
 
   return (
