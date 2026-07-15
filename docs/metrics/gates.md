@@ -24,6 +24,7 @@ PM 本人の判定も1行残す（監査証跡の一貫性のため）。所有�
 | #24 | slice-03-summary-review | 2026-07-15 | 重量（Summarizer抽象化層新設） | GO | PM | — | 受け入れテスト15件緑(slice-01/02回帰含む)・CI合格・Audit GO-WITH-FIXES。Major2件(失敗トリガーが一般語と衝突/型キャスト握り潰し)は修正・再検証済み。秘密混入なし |
 | #26 | slice-04-report-confirm | 2026-07-15 | 重量（確定・不変性ロジック） | GO | PM | — | 受け入れテスト20件緑(slice-01〜03回帰含む)・CI合格・Audit GO（クリーン、指摘なし）。秘密混入なし |
 | #28 | slice-05-report-history | 2026-07-15 | 重量（最終スライス・MVP完走） | GO | PM | — | 受け入れテスト25件緑(MVP全体・slice-01〜05)・CI合格・Audit GO。getDetailがdraft詳細も所有者に返す設計は情報提供として受入（越権なし・禁止AC無し）。秘密混入なし |
+| #31 | slice-01-auth（仕様改訂） | 2026-07-15 | 重量（approved仕様の実質改訂） | GO | PM | — | フロントエンド追加(PR#30)のNO-GO 2回を受け、正規経路(spec/*ブランチ)で画面要件を改訂。Audit GO-WITH-FIXES指摘3件(source欠落・approved再サイクル未実施・自動検証経路なし)すべて対応済み。/login自動検証は手動確認のみで受入とPM決定 |
 
 - **ゲート重量**: `軽量`（Audit＋統合役の結果を読んで判定）／`重量`（`irreversible` ラベル。PM が diff を自分で読む）。
 - **判定**: `GO` / `NO-GO`。NO-GO は差し戻し理由を「根拠」に書き、`docs/metrics/slices.md` の差し戻し理由とも整合させる。
