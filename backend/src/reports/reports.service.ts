@@ -82,4 +82,20 @@ export const reportsService = {
     }
     return reportsRepository.findLatestConfirmedByUserId(userId);
   },
+
+  // docs/spec/slice-05.md AC-1/AC-2: 自分の確定済み報告のみを一覧表示する（draftは含めない）。
+  listConfirmed(userId: string): Report[] {
+    return reportsRepository.listConfirmedByUserId(userId);
+  },
+
+  getDetail(userId: string, reportId: string): Report {
+    const report = reportsRepository.findById(reportId);
+    if (!report) {
+      throw new NotFoundError('report not found');
+    }
+    if (report.user_id !== userId) {
+      throw new ForbiddenError('not owner');
+    }
+    return report;
+  },
 };
