@@ -65,4 +65,5 @@ export const api = {
   // ページ再読み込み時に報告本文を復元するために必要。backendのSEED_FIXTURE_EMAIL
   // (reports.service.ts)と同種のcross-slice依存として層境ゲートで明示する。
   getReport: (id: string) => request<Report>(`/reports/${id}`),
+  confirmReport: (id: string) => request<Report>(`/reports/${id}/confirm`, { method: 'POST' }),
 };
