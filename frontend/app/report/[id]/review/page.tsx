@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { api, ApiError, type Report } from '../../../../lib/api';
 
 // docs/spec/slice-03.md: AI要約 確認・編集画面。
-// 「確定」ボタンはslice-04で追加される（このスライスでは着手しない。指示書「4」参照）。
+// docs/spec/slice-04.md: 同一画面への「確定」ボタン追加（指示書「4」の通り、画面自体の新規作成はしない）。
 function linesToArray(text: string): string[] {
   return text
     .split('\n')
@@ -89,15 +89,34 @@ export default function ReportReviewPage({ params }: { params: { id: string } })
     setMessage('編集内容を保存しました');
   }
 
+  async function handleConfirm() {
+    try {
+      const confirmed = await api.confirmReport(params.id);
+      setReport(confirmed);
+      setMessage('確定しました');
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 422) {
+        setMessage('本文が空のため確定できません。');
+      } else if (err instanceof ApiError && err.status === 409) {
+        setMessage('既に確定済みです。');
+      } else {
+        setMessage('確定に失敗しました。');
+      }
+    }
+  }
+
   if (loading) return <main>読み込み中...</main>;
   if (!report) return <main>報告が見つかりません。</main>;
+
+  const isConfirmed = report.status === 'confirmed';
 
   return (
     <main>
       <h1>AI要約 確認・編集</h1>
       <p>本文: {report.raw_text}</p>
+      {isConfirmed && <p role="status">この報告は確定済みです（編集不可）。</p>}
 
-      {!report.ai_summary_json && (
+      {!report.ai_summary_json && !isConfirmed && (
         <button type="button" onClick={handleSummarize} disabled={summarizing}>
           {summarizing ? '要約中...' : 'AI要約する'}
         </button>
@@ -110,6 +129,7 @@ export default function ReportReviewPage({ params }: { params: { id: string } })
             <textarea
               value={fields.incidents}
               onChange={(e) => setFields((f) => ({ ...f, incidents: e.target.value }))}
+              disabled={isConfirmed}
             />
           </label>
           <label>
@@ -117,6 +137,7 @@ export default function ReportReviewPage({ params }: { params: { id: string } })
             <textarea
               value={fields.achievements}
               onChange={(e) => setFields((f) => ({ ...f, achievements: e.target.value }))}
+              disabled={isConfirmed}
             />
           </label>
           <label>
@@ -124,6 +145,7 @@ export default function ReportReviewPage({ params }: { params: { id: string } })
             <textarea
               value={fields.issues}
               onChange={(e) => setFields((f) => ({ ...f, issues: e.target.value }))}
+              disabled={isConfirmed}
             />
           </label>
           <label>
@@ -131,11 +153,19 @@ export default function ReportReviewPage({ params }: { params: { id: string } })
             <textarea
               value={fields.skills}
               onChange={(e) => setFields((f) => ({ ...f, skills: e.target.value }))}
+              disabled={isConfirmed}
             />
           </label>
-          <button type="button" onClick={handleSaveEdits}>
-            編集を保存
-          </button>
+          {!isConfirmed && (
+            <>
+              <button type="button" onClick={handleSaveEdits}>
+                編集を保存
+              </button>
+              <button type="button" onClick={handleConfirm}>
+                確定
+              </button>
+            </>
+          )}
         </>
       )}
 
